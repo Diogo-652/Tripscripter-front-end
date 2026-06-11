@@ -1,1 +1,227 @@
+1 DECLARAÇÃO DE ESCOPO DO PROJETO 
+  Esta seção apresenta a declaração de escopo do projeto TripScripter, definindo as atividades, funcionalidades e entregas 
+previstas, além das restrições, premissas e critérios de aceitação considerados.
+
+1.1 Objetivos deste documento
+  Este documento tem como objetivo definir de forma clara o escopo do projeto TripScripter, descrevendo quais atividades 
+serão realizadas, quais funcionalidades serão desenvolvidas e quais entregas serão produzidas durante o desenvolvimento do 
+projeto. Sua estrutura segue o modelo de declaração de escopo proposto pelo Escritório de Projetos (ESCRITÓRIO DE PROJETOS, 
+2024). A declaração de escopo também tem como finalidade alinhar expectativas entre os membros da equipe e os avaliadores 
+do projeto, evitando ambiguidades sobre o que será desenvolvido. 
+
+1.2 Situação atual e justificativa do projeto
+  Atualmente, o planejamento de viagens pode ser uma tarefa complexa para muitos turistas, devido à grande quantidade de 
+informações disponíveis na internet. Embora existam diversas plataformas que apresentam atrações turísticas, muitas delas 
+não oferecem uma organização automática dessas informações de forma personalizada. 
+  Muitos viajantes acabam gastando muito tempo pesquisando manualmente diferentes locais, verificando horários de 
+funcionamento, distância entre atrações e preferências pessoais. Isso pode resultar em roteiros mal organizados, 
+deslocamentos desnecessários e perda de oportunidades de visita.
+  Diante desse cenário, surge a necessidade de uma ferramenta que utilize tecnologia e inteligência artificial para 
+auxiliar os usuários na criação de roteiros de viagem personalizados, otimizando o tempo e a organização das atividades.
+  O projeto TripScripter busca solucionar esse problema por meio de uma plataforma digital que gera automaticamente 
+roteiros de viagem com base nas preferências do usuário e em fatores logísticos relevantes.
+
+1.3 Objetivos SMART e critérios de sucesso do projeto 
+
+1.3.1 Objetivo geral 
+  Desenvolver uma plataforma digital capaz de gerar roteiros de viagem personalizados utilizando inteligência artificial, 
+considerando as preferências do usuário e fatores logísticos como proximidade geográfica e horários de funcionamento.
+
+1.3.2 Objetivos SMART 
+Foram definidos os seguintes objetivos específicos, mensuráveis, atingíveis, relevantes e temporais:
+a) desenvolver um sistema capaz de gerar automaticamente roteiros de viagem personalizados com base nas preferências do 
+usuário;
+b) permitir que o usuário visualize e edite o roteiro gerado pela inteligência artificial;
+c) organizar as atrações turísticas considerando proximidade geográfica, popularidade e horários de funcionamento;
+d) disponibilizar o sistema em ambiente web com interface amigável para o usuário. 
+
+1.3.3 Critérios de sucesso 
+O projeto será considerado bem-sucedido se: 
+a) o sistema gerar automaticamente roteiros personalizados;
+b) o usuário puder editar e personalizar os roteiros sugeridos; 
+c) o sistema apresentar as atividades organizadas por dia; 
+d) a aplicação funcionar corretamente em ambiente web; 
+e) as funcionalidades principais forem demonstradas durante a apresentação do projeto.  
+
+1.4 Escopo do produto O TripScripter será uma plataforma digital voltada ao planejamento de viagens personalizadas. O 
+sistema permitirá que o usuário informe dados básicos sobre sua viagem, como destino, datas e preferências pessoais. A 
+partir dessas informações, o sistema utilizará inteligência artificial para gerar automaticamente um roteiro de viagem 
+organizado por dias.
+Entre as principais funcionalidades do sistema estão:
+a) cadastro e login de usuários; 
+b) criação e gerenciamento de viagens;
+c) seleção de preferências de atividades; 
+d) geração automática de roteiros com inteligência artificial;
+e) organização das atividades por dia; 
+f) visualização do roteiro em lista; 
+g) visualização das atrações em mapa;
+h) edição e personalização do roteiro; 
+i) adição de notas pessoais pelo usuário;
+j) registro de histórico de viagens no perfil do usuário.
+
+1.5 Exclusões do projeto (fora do escopo)
+Os seguintes itens não fazem parte do escopo deste projeto: 
+a) sistema de compra de passagens aéreas;
+b) sistema de reserva de hotéis; 
+c) integração com sistemas de pagamento; 
+d) sistema completo de rede social entre usuários;
+e) plataforma comercial de turismo. Essas funcionalidades poderão ser consideradas em versões futuras do sistema. 
+
+1.6 Restrições
+O projeto possui algumas restrições relacionadas ao seu desenvolvimento: 
+a) prazo limitado devido ao calendário acadêmico;
+b) recursos financeiros limitados; 
+c) utilização de ferramentas gratuitas ou de código aberto;
+d) desenvolvimento inicial focado em um protótipo funcional;
+e) equipe de desenvolvimento composta por estudantes.
+
+1.7 Premissas
+Para o planejamento e o desenvolvimento do projeto, foram consideradas as seguintes premissas:
+a) os usuários terão acesso à internet para utilizar o sistema;
+b) APIs externas de mapas e clima estarão disponíveis para integração;
+c) informações turísticas poderão ser obtidas por meio de bases públicas ou APIs;
+d) o sistema será inicialmente desenvolvido como um protótipo acadêmico;
+e) o desenvolvimento será realizado utilizando tecnologias modernas de desenvolvimento web. 
+
+1.8 Entregas e critérios de aceitação
+O Quadro 1 apresenta as entregas previstas e seus respectivos critérios de aceitação.
+
+              Entrega                               Critério de aceitação 
+        Documento do projeto             Documento completo contendo a descrição do sistema
+        Protótipo do sistema       Interface funcional demonstrando as principais funcionalidades 
+      Algoritmo de recomendação             Algoritmo implementado e documentado 
+       Apresentação do projeto           Apresentação realizada para avaliação acadêmica
+
+2 DOCUMENTO DE REQUISITOS
+  Esta seção descreve os requisitos do sistema TripScripter, apresentando a visão geral do produto e a especificação dos 
+requisitos funcionais e não funcionais levantados a partir das necessidades dos usuários. 
+
+2.1 Objetivo
+  Esta parte do documento tem como objetivo descrever os requisitos do sistema TripScripter, apresentando uma visão inicial 
+das funcionalidades que deverão ser desenvolvidas. 
+  São descritos os principais requisitos levantados a partir das necessidades dos usuários, que servem como base para o 
+desenvolvimento do sistema. 
+  Os requisitos aqui descritos serão utilizados como referência para o desenvolvimento da aplicação e para a elaboração dos 
+modelos de casos de uso e demais documentos do projeto. 
+
+2.2 Visão geral do produto
+  O TripScripter é uma plataforma digital desenvolvida para auxiliar usuários no planejamento de viagens de forma 
+automática e personalizada. O sistema utilizará inteligência artificial para gerar roteiros de viagem com base nas 
+preferências do usuário, considerando fatores como:
+a) destino da viagem; 
+b) duração da viagem; 
+c) preferências de atividades;
+d) proximidade geográfica entre atrações;
+e) horários de funcionamento. 
+  A plataforma permitirá que os usuários criem roteiros organizados por dias, podendo visualizar as atividades recomendadas 
+e personalizar o roteiro conforme suas necessidades. 
+
+2.2.1 Funcionalidades principais do produto
+  Entre as principais funcionalidades do sistema estão: 
+a) cadastro e login de usuários; 
+b) criação de viagens; 
+c) seleção de preferências de atividades;
+d) geração automática de roteiros de viagem;
+e) visualização das atividades organizadas por dia;
+f) visualização de atrações em mapa; 
+g) edição do roteiro sugerido; 
+h) registro de notas pessoais. 
+
+2.2.2 Características dos usuários
+O sistema será utilizado principalmente por: 
+a) turistas; 
+b) viajantes que desejam planejar viagens; 
+c) usuários que desejam organizar roteiros de viagem de forma automatizada.
+  Os usuários poderão acessar o sistema por meio de navegador web ou de aplicativo mobile. 
+
+2.2.3 Restrições do sistema
+  O desenvolvimento do sistema possui algumas limitações:
+a) prazo de desenvolvimento limitado;
+b) uso de tecnologias gratuitas ou open source;
+c) desenvolvimento inicial como protótipo acadêmico.
+
+2.3 Requisitos do sistema
+Os requisitos descritos a seguir representam as funcionalidades que o sistema deverá possuir para atender às necessidades 
+dos usuários. Cada requisito recebe uma classificação de prioridade: essencial, importante ou desejável. 
+
+2.3.1 Requisitos funcionais 
+
+  Código                 Requisito                     Descrição                             Prioridade 
+
+  RQ001             Cadastro de usuário     O sistema deverá permitir que o usuário          Essencial  
+                                            crie uma conta informando dados básicos 
+                                            como nome, e-mail e senha.  
+  
+  RQ002             Login no sistema        O sistema deverá permitir que usuários           Essencial                      
+                                            autenticados realizem login utilizando                                         
+                                            e-mail e senha.
+
+ RQ003             Criação de viagem        O sistema deverá permitir que o usuário crie     Essencial                      
+                                            uma nova viagem informando destino, duração
+                                            da viagem e preferências de atividades.
+                                                                                                                      
+  RQ004             Geração automática      O sistema deverá gerar automaticamente um         Essencial                     
+                      de roteiro            roteiro de viagem com base nas preferências                                     
+                                            informadas pelo usuário.
+
+  RQ005             Organização do          O sistema deverá organizar as atividades          Essencial
+                       roteiro              sugeridas em uma lista estruturada por dias.
+                                                                                                                    
+  RQ006             Visualização em         O sistema deverá permitir que o usuário           Importante
+                         mapa               visualize os locais sugeridos em um mapa.                                       
+
+   RQ007            Edição do roteiro       O usuário deverá poder modificar o roteiro       Importante
+                                            gerado, alterando a ordem das atividades,         
+                                            removendo sugestões e adicionando novos locais.
+
+   RQ008             Notas pessoais         O sistema deverá permitir que o usuário           Desejável    
+                                            adicione notas pessoais às atividades do
+                                            roteiro.                                                                       
+2.3.2 Requisitos não funcionais
+
+  Código                 Requisito                     Descrição                             Prioridade
+
+  RQ009                  Desempenho         O sistema deverá gerar o roteiro em menos de     Importante
+                                            1 segundo após o envio das preferências do
+                                            usuário.
+ 
+  RQ010                  Usabilidade        A interface deverá ser simples e intuitiva,      Importante
+                                            permitindo que usuários iniciantes consigam
+                                            planejar uma viagem facilmente.                                                 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
