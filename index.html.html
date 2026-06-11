@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TripScripter</title>
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      /* Cor corrigida para bater com o Figma */
+      --sidebar-bg:   #2d6e7e;
+      --sidebar-w:    210px;
+      --header-bg:    #2d6e7e;
+      --cream:        #ede8d5;
+      --card-bg:      #ffffff;
+      --card-img-bg:  #5a9aaa;
+      --text-dark:    #1a1a1a;
+      --text-muted:   #555;
+      --accent-teal:  #2d6e7e;
+      --accent-amber: #e8b96a;
+      --badge-prox:   #f5d9a0;
+      --badge-plan:   #a8d0db;
+      --btn-add:      #e8b96a;
+      --red:          #e05454;
+      --border:       #ddd;
+      --radius-card:  14px;
+      --radius-sm:    8px;
+      --font:         'Segoe UI', system-ui, sans-serif;
+      --shadow:       0 2px 10px rgba(0,0,0,.08);
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--cream);
+      color: var(--text-dark);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      padding: 20px 14px;
+      flex-shrink: 0;
+      height: 100vh;
+    }
+    .sidebar-logo {
+      color: #fff;
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 18px;
+    }
+    .sidebar-avatar {
+      width: 54px; height: 54px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.2);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 24px;
+    }
+    .sidebar-avatar svg { width: 30px; height: 30px; fill: #fff; }
+    .sidebar-nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px;
+      border-radius: var(--radius-sm);
+      color: rgba(255,255,255,.8);
+      font-size: .92rem;
+      cursor: pointer;
+      transition: background .15s;
+      border: none; background: none; width: 100%; text-align: left;
+    }
+    .nav-item:hover { background: rgba(255,255,255,.15); }
+    .nav-item.active { background: rgba(255,255,255,.25); color: #fff; font-weight: 600; }
+    .nav-item svg { width: 17px; height: 17px; flex-shrink: 0; }
+    .sidebar-footer { margin-top: auto; }
+
+    /* ── Main ── */
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .page { display: none; flex-direction: column; height: 100%; }
+    .page.active { display: flex; }
+
+    /* ── Minhas Viagens ── */
+    #page-viagens .page-header {
+      padding: 32px 40px 0;
+      display: flex; align-items: flex-start; justify-content: space-between;
+    }
+    #page-viagens .page-title { font-size: 1.6rem; font-weight: 700; }
+    #page-viagens .page-subtitle { color: var(--text-muted); font-size: .9rem; margin-top: 2px; }
+    .btn-nova-viagem {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--sidebar-bg); color: #fff;
+      border: none; border-radius: var(--radius-sm);
+      padding: 10px 18px; font-size: .9rem; font-weight: 600;
+      cursor: pointer; transition: opacity .15s; white-space: nowrap;
+    }
+    .btn-nova-viagem:hover { opacity: .88; }
+    .btn-nova-viagem svg { width: 16px; height: 16px; }
+    .viagens-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 22px;
+      padding: 28px 40px;
+      overflow-y: auto;
+    }
+    .trip-card {
+      background: var(--card-bg);
+      border-radius: var(--radius-card);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      transition: transform .15s, box-shadow .15s;
+    }
+    .trip-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,.12); }
+    .trip-card-img {
+      height: 160px;
+      background: var(--card-img-bg);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .trip-card-img svg { width: 52px; height: 52px; fill: rgba(255,255,255,.7); }
+    .trip-card-body { padding: 16px; }
+    .trip-card-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; }
+    .trip-meta { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+    .trip-meta-row { display: flex; align-items: center; gap: 6px; font-size: .82rem; color: var(--text-muted); }
+    .trip-meta-row svg { width: 14px; height: 14px; flex-shrink: 0; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: .78rem; font-weight: 600; }
+    .badge-prox { background: var(--badge-prox); color: #7a5500; }
+    .badge-plan { background: var(--badge-plan); color: #1a5060; }
+
+    /* ── Roteiro ── */
+    #page-roteiro .roteiro-header {
+      background: var(--header-bg);
+      color: #fff;
+      padding: 22px 40px;
+    }
+    .back-btn {
+      display: flex; align-items: center; gap: 6px;
+      background: none; border: none; color: rgba(255,255,255,.85);
+      font-size: .88rem; cursor: pointer; padding: 0 0 10px;
+    }
+    .back-btn:hover { color: #fff; }
+    .back-btn svg { width: 16px; height: 16px; }
+    .roteiro-title { font-size: 1.7rem; font-weight: 700; }
+    .roteiro-meta { display: flex; align-items: center; gap: 16px; margin-top: 4px; }
+    .roteiro-meta-item { display: flex; align-items: center; gap: 6px; font-size: .88rem; opacity: .9; }
+    .roteiro-meta-item svg { width: 14px; height: 14px; }
+    .roteiro-body { flex: 1; overflow-y: auto; padding: 24px 40px; }
+    .roteiro-toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .view-tabs { display: flex; gap: 8px; }
+    .view-tab {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 18px; border-radius: var(--radius-sm);
+      font-size: .88rem; font-weight: 600; cursor: pointer;
+      border: none; transition: background .15s, color .15s;
+    }
+    .view-tab svg { width: 15px; height: 15px; }
+    .view-tab.active { background: var(--accent-teal); color: #fff; }
+    .view-tab:not(.active) { background: rgba(45,110,126,.1); color: var(--accent-teal); }
+    .view-tab:not(.active):hover { background: rgba(45,110,126,.18); }
+    .btn-add-ativ {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--btn-add); color: #fff;
+      border: none; border-radius: var(--radius-sm);
+      padding: 8px 16px; font-size: .88rem; font-weight: 600;
+      cursor: pointer; transition: opacity .15s;
+    }
+    .btn-add-ativ:hover { opacity: .88; }
+    .btn-add-ativ svg { width: 15px; height: 15px; }
+    .day-nav {
+      background: #fff;
+      border-radius: var(--radius-card);
+      padding: 16px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+    .day-nav-center { text-align: center; }
+    .day-nav-label { font-size: 1rem; font-weight: 700; }
+    .day-nav-date { font-size: .83rem; color: var(--text-muted); }
+    .day-nav-btn {
+      background: none; border: none; cursor: pointer;
+      color: var(--text-muted); padding: 4px; border-radius: 4px;
+      transition: color .15s, background .15s;
+    }
+    .day-nav-btn:hover { color: var(--accent-teal); background: rgba(45,110,126,.08); }
+    .day-nav-btn svg { width: 18px; height: 18px; display: block; }
+    .atividade-card {
+      background: #fff;
+      border-radius: var(--radius-card);
+      padding: 16px 18px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow);
+      display: flex; align-items: flex-start; gap: 14px;
+    }
+    .ativ-num {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--accent-teal); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .8rem; font-weight: 700; flex-shrink: 0; margin-top: 2px;
+    }
+    .ativ-body { flex: 1; }
+    .ativ-title { font-size: .97rem; font-weight: 700; margin-bottom: 3px; }
+    .ativ-desc { font-size: .83rem; color: var(--text-muted); margin-bottom: 8px; }
+    .ativ-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .ativ-meta-item { display: flex; align-items: center; gap: 4px; font-size: .8rem; color: var(--text-muted); }
+    .ativ-meta-item svg { width: 13px; height: 13px; }
+    .tag { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: .75rem; font-weight: 600; }
+    .tag-cultura    { background: #e8ddf5; color: #6a3fa0; }
+    .tag-gastronomia{ background: #fde8d0; color: #a0440f; }
+    .tag-natureza   { background: #d4f0d0; color: #2a7a30; }
+    .tag-lazer      { background: #d0e8f8; color: #1a5080; }
+    .ativ-actions { display: flex; gap: 8px; margin-left: auto; flex-shrink: 0; }
+    .ativ-btn { background: none; border: none; cursor: pointer; padding: 4px; border-radius: 4px; transition: background .15s; }
+    .ativ-btn:hover { background: rgba(0,0,0,.06); }
+    .ativ-btn.del svg { fill: var(--red); }
+    .ativ-btn.note svg { fill: var(--text-muted); }
+
+    /* ── MAP VIEW ── */
+    #map-view-wrapper {
+      display: none;
+      flex-direction: column;
+      gap: 0;
+    }
+    #map-view-wrapper.visible { display: flex; }
+    #list-view-container.hidden { display: none; }
+
+    #leaflet-map {
+      width: 100%;
+      height: 420px;
+      border-radius: var(--radius-card);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      z-index: 1;
+    }
+
+    .map-legend {
+      background: #fff;
+      border-radius: var(--radius-card);
+      padding: 14px 18px;
+      margin-top: 12px;
+      box-shadow: var(--shadow);
+    }
+    .map-legend-title { font-size: .85rem; font-weight: 700; margin-bottom: 10px; color: var(--accent-teal); }
+    .map-legend-list { display: flex; flex-direction: column; gap: 6px; }
+    .map-legend-item { display: flex; align-items: center; gap: 10px; font-size: .82rem; color: var(--text-dark); }
+    .map-legend-num {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--accent-teal); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .72rem; font-weight: 700; flex-shrink: 0;
+    }
+
+    /* ── Perfil ── */
+    #page-perfil .page-header { padding: 32px 40px 0; }
+    #page-perfil .page-title { font-size: 1.6rem; font-weight: 700; }
+    #page-perfil .page-subtitle { color: var(--text-muted); font-size: .9rem; margin-top: 2px; }
+    .perfil-body { padding: 24px 40px; overflow-y: auto; flex: 1; }
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-card { border-radius: var(--radius-card); padding: 20px; display: flex; flex-direction: column; gap: 4px; }
+    .stat-card.teal  { background: var(--card-img-bg); color: #fff; }
+    .stat-card.amber { background: var(--badge-prox); color: #7a5500; }
+    .stat-card.light { background: var(--badge-plan); color: #1a5060; }
+    .stat-icon svg { width: 22px; height: 22px; }
+    .stat-card.teal  .stat-icon svg { fill: rgba(255,255,255,.85); }
+    .stat-card.amber .stat-icon svg { fill: #7a5500; }
+    .stat-card.light .stat-icon svg { fill: #1a5060; }
+    .stat-num   { font-size: 2rem; font-weight: 800; line-height: 1; margin-top: 4px; }
+    .stat-label { font-size: .83rem; font-weight: 500; opacity: .85; }
+    .perfil-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+    .perfil-tab {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 18px; border-radius: var(--radius-sm);
+      font-size: .88rem; font-weight: 600; cursor: pointer;
+      border: none; transition: background .15s, color .15s;
+    }
+    .perfil-tab svg { width: 15px; height: 15px; }
+    .perfil-tab.active { background: var(--accent-teal); color: #fff; }
+    .perfil-tab:not(.active) { background: rgba(45,110,126,.1); color: var(--accent-teal); }
+    .perfil-tab:not(.active):hover { background: rgba(45,110,126,.18); }
+    .locais-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+    .local-card { background: #fff; border-radius: var(--radius-card); overflow: hidden; box-shadow: var(--shadow); position: relative; }
+    .local-card-img { height: 120px; background: var(--card-img-bg); display: flex; align-items: center; justify-content: center; position: relative; }
+    .local-card-img svg { width: 38px; height: 38px; fill: rgba(255,255,255,.7); }
+    .fav-btn { position: absolute; top: 8px; right: 8px; background: none; border: none; cursor: pointer; padding: 2px; }
+    .fav-btn svg { width: 20px; height: 20px; }
+    .fav-btn.active svg { fill: var(--red); }
+    .fav-btn:not(.active) svg { fill: rgba(255,255,255,.5); stroke: rgba(255,255,255,.7); stroke-width: 1.5; }
+    .local-card-body { padding: 12px; }
+    .local-card-title { font-size: .92rem; font-weight: 700; margin-bottom: 2px; }
+    .local-card-loc   { font-size: .8rem; color: var(--text-muted); margin-bottom: 6px; }
+    .local-card-date  { display: flex; align-items: center; gap: 4px; font-size: .78rem; color: #2a7a30; }
+    .local-card-date svg { width: 12px; height: 12px; fill: #2a7a30; }
+
+    /* ── Modals ── */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.45);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100;
+      opacity: 0; pointer-events: none;
+      transition: opacity .2s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: #fff;
+      border-radius: var(--radius-card);
+      padding: 28px;
+      width: 480px; max-width: 95vw;
+      transform: translateY(20px);
+      transition: transform .2s;
+      max-height: 90vh; overflow-y: auto;
+    }
+    .modal-overlay.open .modal { transform: translateY(0); }
+    .modal-title    { font-size: 1.2rem; font-weight: 700; margin-bottom: 4px; }
+    .modal-subtitle { font-size: .85rem; color: var(--text-muted); margin-bottom: 20px; }
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-size: .85rem; font-weight: 600; margin-bottom: 5px; }
+    .form-input, .form-select {
+      width: 100%; padding: 9px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: .9rem; font-family: var(--font);
+      color: var(--text-dark);
+      transition: border-color .15s;
+      background: #fff;
+    }
+    .form-input:focus, .form-select:focus { outline: none; border-color: var(--accent-teal); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .pref-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+    .pref-chip {
+      padding: 5px 13px; border-radius: 20px;
+      font-size: .82rem; font-weight: 600; cursor: pointer;
+      border: 1.5px solid var(--border);
+      background: #fff; color: var(--text-muted);
+      transition: all .15s; user-select: none;
+    }
+    .pref-chip.selected { border-color: var(--accent-teal); background: rgba(45,110,126,.1); color: var(--accent-teal); }
+    .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+    .btn-cancel {
+      padding: 9px 18px; border-radius: var(--radius-sm);
+      border: 1.5px solid var(--border); background: #fff;
+      font-size: .9rem; font-weight: 600; cursor: pointer; color: var(--text-muted);
+    }
+    .btn-cancel:hover { background: #f5f5f5; }
+    .btn-confirm {
+      padding: 9px 20px; border-radius: var(--radius-sm);
+      background: var(--accent-teal); color: #fff;
+      border: none; font-size: .9rem; font-weight: 700; cursor: pointer;
+    }
+    .btn-confirm:hover { opacity: .88; }
+    .nota-textarea {
+      width: 100%; min-height: 100px;
+      padding: 9px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: .9rem; font-family: var(--font);
+      resize: vertical;
+    }
+    .nota-textarea:focus { outline: none; border-color: var(--accent-teal); }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 28px; right: 28px;
+      background: #333; color: #fff;
+      padding: 11px 20px; border-radius: var(--radius-sm);
+      font-size: .88rem; z-index: 200;
+      opacity: 0; transform: translateY(12px);
+      transition: all .25s; pointer-events: none;
+    }
+    .toast.show  { opacity: 1; transform: translateY(0); }
+    .toast.success { background: #2e7d32; }
+    .toast.error   { background: #c62828; }
+
+    /* ── Tela de Login ── */
+    .login-screen {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--sidebar-bg);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 150;
+      transition: opacity .3s;
+    }
+    .login-screen.hidden { opacity: 0; pointer-events: none; }
+    .login-card {
+      background: var(--cream);
+      border-radius: var(--radius-card);
+      box-shadow: 0 8px 30px rgba(0,0,0,.25);
+      width: 360px; max-width: calc(100vw - 40px);
+      padding: 34px 32px 28px;
+      text-align: center;
+    }
+    .login-brand { font-size: 1.45rem; font-weight: 700; color: var(--text-dark); margin-bottom: 18px; }
+    .login-avatar {
+      width: 76px; height: 76px; border-radius: 50%;
+      background: var(--accent-amber);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 22px;
+    }
+    .login-avatar svg { width: 38px; height: 38px; fill: none; stroke: var(--cream); stroke-width: 2; }
+    .login-field { text-align: left; margin-bottom: 14px; }
+    .login-field label { display: block; font-size: .8rem; font-weight: 600; margin-bottom: 5px; color: var(--text-dark); }
+    .login-field input {
+      width: 100%; border: none; border-bottom: 1.5px solid var(--text-dark);
+      background: transparent; padding: 7px 2px; font-size: .9rem;
+      font-family: var(--font); outline: none;
+    }
+    .login-field input:focus { border-bottom-color: var(--accent-teal); }
+    .login-row {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: .78rem; margin: 16px 0 18px;
+    }
+    .login-row label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    .login-link { color: var(--text-muted); cursor: pointer; background: none; border: none; font-size: .78rem; font-family: var(--font); }
+    .login-link:hover { color: var(--accent-teal); text-decoration: underline; }
+    .login-btn {
+      width: 100%; padding: 11px; border: none; border-radius: var(--radius-sm);
+      background: var(--accent-teal); color: #fff; font-size: .92rem; font-weight: 600;
+      font-family: var(--font); cursor: pointer; margin-bottom: 14px;
+    }
+    .login-btn:hover { opacity: .9; }
+
+    /* ── Wizard de 3 passos (Nova Viagem) ── */
+    .wizard-progress-head {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: .78rem; color: var(--text-muted); margin-bottom: 6px;
+    }
+    .wizard-bar-track {
+      width: 100%; height: 7px; border-radius: 4px;
+      background: rgba(0,0,0,.1); overflow: hidden; margin-bottom: 20px;
+    }
+    .wizard-bar-fill {
+      height: 100%; width: 33%; border-radius: 4px;
+      background: var(--accent-teal);
+      transition: width .25s ease;
+    }
+    .wizard-step { display: none; }
+    .wizard-step.active { display: block; }
+    .wizard-step-title { font-size: .98rem; font-weight: 700; margin-bottom: 14px; color: var(--text-dark); }
+
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(0,0,0,.18); border-radius: 3px; }
+
+    /* Fix Leaflet z-index inside layout */
+    .leaflet-pane { z-index: 1 !important; }
+    .leaflet-top, .leaflet-bottom { z-index: 2 !important; }
+  </style>
+</head>
+<body>
+
+<!-- TELA DE LOGIN (autenticação simulada) -->
+<div class="login-screen" id="login-screen">
+  <div class="login-card">
+    <div class="login-brand">TripScripter</div>
+    <div class="login-avatar">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
+    </div>
+    <div class="login-field">
+      <label for="login-email">E-mail</label>
+      <input id="login-email" type="email" placeholder="seu@email.com" autocomplete="username" />
+    </div>
+    <div class="login-field">
+      <label for="login-senha">Senha</label>
+      <input id="login-senha" type="password" placeholder="********" autocomplete="current-password" />
+    </div>
+    <div class="login-row">
+      <label><input type="checkbox" id="login-lembrar" /> Lembrar de mim</label>
+      <button class="login-link" onclick="esqueciSenha()">Esqueci a senha</button>
+    </div>
+    <button class="login-btn" onclick="fazerLogin()">Entrar</button>
+    <button class="login-link" onclick="criarConta()">Criar nova conta</button>
+  </div>
+</div>
+
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">TripScripter</div>
+  <div class="sidebar-avatar">
+    <svg viewBox="0 0 24 24"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+  </div>
+  <nav class="sidebar-nav">
+    <button class="nav-item active" onclick="navigate('viagens')" id="nav-viagens">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      Minhas Viagens
+    </button>
+    <button class="nav-item" onclick="navigate('perfil')" id="nav-perfil">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/></svg>
+      Perfil de Viajante
+    </button>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="nav-item" onclick="sair()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sair
+    </button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- PAGE: MINHAS VIAGENS -->
+  <section class="page active" id="page-viagens">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Minhas Viagens</h1>
+        <p class="page-subtitle">Gerencie e planeje suas aventuras</p>
+      </div>
+      <button class="btn-nova-viagem" onclick="openModal()">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        Nova Viagem
+      </button>
+    </div>
+    <div class="viagens-grid" id="viagens-grid"></div>
+  </section>
+
+  <!-- PAGE: ROTEIRO -->
+  <section class="page" id="page-roteiro">
+    <div class="roteiro-header">
+      <button class="back-btn" onclick="navigate('viagens')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        Voltar para Minhas Viagens
+      </button>
+      <h2 class="roteiro-title" id="rot-title">Paris, França</h2>
+      <div class="roteiro-meta">
+        <span class="roteiro-meta-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span id="rot-dates"></span>
+        </span>
+        <span class="roteiro-meta-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span id="rot-days"></span>
+        </span>
+      </div>
+    </div>
+
+    <div class="roteiro-body">
+      <div class="roteiro-toolbar">
+        <div class="view-tabs">
+          <button class="view-tab active" id="tab-lista" onclick="switchView('lista')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><circle cx="5" cy="6" r="1" fill="currentColor"/><circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="5" cy="18" r="1" fill="currentColor"/></svg>
+            Lista
+          </button>
+          <button class="view-tab" id="tab-mapa" onclick="switchView('mapa')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+            Mapa
+          </button>
+        </div>
+        <button class="btn-add-ativ" onclick="openAddAtivModal()">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          Adicionar Atividade
+        </button>
+      </div>
+
+      <!-- Day navigation -->
+      <div class="day-nav">
+        <button class="day-nav-btn" onclick="changeDay(-1)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="day-nav-center">
+          <div class="day-nav-label" id="day-label">Dia 1</div>
+          <div class="day-nav-date" id="day-date"></div>
+        </div>
+        <button class="day-nav-btn" onclick="changeDay(1)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+
+      <!-- List view -->
+      <div id="list-view-container"></div>
+
+      <!-- Map view (Leaflet) -->
+      <div id="map-view-wrapper">
+        <div id="leaflet-map"></div>
+        <div class="map-legend">
+          <div class="map-legend-title">📍 Atividades do dia no mapa</div>
+          <div class="map-legend-list" id="map-legend-list"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PAGE: PERFIL -->
+  <section class="page" id="page-perfil">
+    <div class="page-header">
+      <h1 class="page-title">Perfil de Viajante</h1>
+      <p class="page-subtitle">Acompanhe seus destinos visitados e lista de desejos</p>
+    </div>
+    <div class="perfil-body">
+      <div class="stats-grid">
+        <div class="stat-card teal">
+          <div class="stat-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>
+          <div class="stat-num" id="stat-paises">4</div>
+          <div class="stat-label">Países Visitados</div>
+        </div>
+        <div class="stat-card amber">
+          <div class="stat-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>
+          <div class="stat-num" id="stat-cidades">4</div>
+          <div class="stat-label">Cidades Visitadas</div>
+        </div>
+        <div class="stat-card light">
+          <div class="stat-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+          <div class="stat-num" id="stat-locais">4</div>
+          <div class="stat-label">Locais Visitados</div>
+        </div>
+      </div>
+      <div class="perfil-tabs">
+        <button class="perfil-tab active" id="ptab-visitados" onclick="switchPerfilTab('visitados')">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+          Locais Visitados (4)
+        </button>
+        <button class="perfil-tab" id="ptab-desejos" onclick="switchPerfilTab('desejos')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          Lista de Desejos (3)
+        </button>
+      </div>
+      <div class="locais-grid" id="locais-grid"></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- MODAL: Nova Viagem -->
+<div class="modal-overlay" id="modal-nova-viagem">
+  <div class="modal">
+    <h3 class="modal-title">Planeje sua Viagem</h3>
+    <p class="modal-subtitle">Responda algumas perguntas para criar seu roteiro personalizado</p>
+
+    <div class="wizard-progress-head">
+      <span id="wizard-step-label">Passo 1 de 3</span>
+      <span id="wizard-pct">33%</span>
+    </div>
+    <div class="wizard-bar-track"><div class="wizard-bar-fill" id="wizard-bar"></div></div>
+
+    <!-- PASSO 1: Informações Básicas -->
+    <div class="wizard-step active" id="wizard-step-1">
+      <div class="wizard-step-title">Informações Básicas</div>
+      <div class="form-group">
+        <label class="form-label">Destino</label>
+        <input class="form-input" id="input-destino" type="text" placeholder="Ex: Lisboa, Portugal" />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Data de início</label>
+          <input class="form-input" id="input-inicio" type="date" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Data de fim</label>
+          <input class="form-input" id="input-fim" type="date" />
+        </div>
+      </div>
+    </div>
+
+    <!-- PASSO 2: Orçamento e Hospedagem -->
+    <div class="wizard-step" id="wizard-step-2">
+      <div class="wizard-step-title">Orçamento e Hospedagem</div>
+      <div class="form-group">
+        <label class="form-label">Orçamento Total (R$)</label>
+        <input class="form-input" id="input-orcamento" type="number" min="0" placeholder="Ex: 5000" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Localização da Hospedagem (região aproximada)</label>
+        <input class="form-input" id="input-hotel" type="text" placeholder="Ex: Centro Histórico, Bairro Marais" />
+      </div>
+    </div>
+
+    <!-- PASSO 3: Suas Preferências -->
+    <div class="wizard-step" id="wizard-step-3">
+      <div class="wizard-step-title">Suas Preferências</div>
+      <div class="form-group">
+        <label class="form-label">Selecione as categorias que mais te interessam</label>
+        <div class="pref-grid">
+          <span class="pref-chip" onclick="toggleChip(this)">🍽️ Gastronomia</span>
+          <span class="pref-chip" onclick="toggleChip(this)">🏛️ Cultura</span>
+          <span class="pref-chip" onclick="toggleChip(this)">🌿 Natureza</span>
+          <span class="pref-chip" onclick="toggleChip(this)">🎉 Lazer</span>
+          <span class="pref-chip" onclick="toggleChip(this)">🛍️ Compras</span>
+          <span class="pref-chip" onclick="toggleChip(this)">🌙 Vida Noturna</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel" id="wizard-btn-back" onclick="wizardVoltar()">Cancelar</button>
+      <button class="btn-confirm" id="wizard-btn-next" onclick="wizardAvancar()">Próximo</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Adicionar Atividade -->
+<div class="modal-overlay" id="modal-add-ativ">
+  <div class="modal">
+    <h3 class="modal-title">Adicionar Atividade</h3>
+    <p class="modal-subtitle">Adicione um novo local ao roteiro do dia atual</p>
+    <div class="form-group">
+      <label class="form-label">Nome do local</label>
+      <input class="form-input" id="ativ-nome" type="text" placeholder="Ex: Torre Eiffel" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Descrição</label>
+      <input class="form-input" id="ativ-desc" type="text" placeholder="Ex: Visita ao monumento icônico" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Horário</label>
+        <input class="form-input" id="ativ-hora" type="time" value="09:00" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Duração</label>
+        <select class="form-select" id="ativ-dur">
+          <option>1h</option><option>2h</option><option>3h</option>
+          <option>4h</option><option>Dia inteiro</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Categoria</label>
+      <select class="form-select" id="ativ-cat">
+        <option>Cultura</option><option>Gastronomia</option>
+        <option>Natureza</option><option>Lazer</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeAddAtivModal()">Cancelar</button>
+      <button class="btn-confirm" onclick="adicionarAtividade()">Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Nota -->
+<div class="modal-overlay" id="modal-nota">
+  <div class="modal">
+    <h3 class="modal-title">Anotação Pessoal</h3>
+    <p class="modal-subtitle" id="nota-subtitle">Nota privada para esta atividade</p>
+    <div class="form-group">
+      <label class="form-label">Nota</label>
+      <textarea class="nota-textarea" id="nota-texto" placeholder="Escreva aqui..."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeNotaModal()">Cancelar</button>
+      <button class="btn-confirm" onclick="salvarNota()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* ── Coordenadas por destino (usadas no mapa) ── */
+const destinoCoords = {
+  'Paris, França':   [48.8566, 2.3522],
+  'Tóquio, Japão':   [35.6762, 139.6503],
+  'default':         [20, 0]
+};
+
+/* Coordenadas aproximadas para atividades de exemplo */
+const atividadeCoords = {
+  'Torre Eiffel':            [48.8584, 2.2945],
+  'Museu do Louvre':         [48.8606, 2.3376],
+  'Restaurante Le Comptoir': [48.8529, 2.3430],
+  'Palácio de Versalhes':    [48.8049, 2.1204],
+  'Jardins de Versalhes':    [48.8053, 2.1221],
+  'Montmartre':              [48.8867, 2.3431],
+  'Sacré-Cœur':              [48.8867, 2.3431],
+  'Moulin Rouge':            [48.8841, 2.3322],
+  'Templo Senso-ji':         [35.7148, 139.7967],
+  'Akihabara':               [35.7022, 139.7741],
+  'Monte Fuji':              [35.3606, 138.7274],
+};
+
+/* ── State ── */
+let currentPage    = 'viagens';
+let currentViagemIdx = 0;
+let currentDay     = 0;
+let currentNotaAtivIdx = null;
+let perfilTab      = 'visitados';
+let leafletMap     = null;
+let mapMarkers     = [];
+
+const viagens = [
+  {
+    destino: 'Paris, França',
+    inicio: '2026-05-15', fim: '2026-05-22',
+    dias: 7, status: 'proxima',
+    atividades: [
+      [
+        { nome: 'Torre Eiffel',            desc: 'Visita ao monumento mais icônico de Paris', hora: '09:00', dur: '2h', cat: 'Cultura',      nota: '' },
+        { nome: 'Museu do Louvre',         desc: 'Explore as obras de arte mais famosas do mundo', hora: '12:00', dur: '3h', cat: 'Cultura', nota: '' },
+        { nome: 'Restaurante Le Comptoir', desc: 'Jantar em restaurante francês tradicional',  hora: '19:00', dur: '2h', cat: 'Gastronomia', nota: '' },
+      ],
+      [
+        { nome: 'Palácio de Versalhes', desc: 'Visita ao histórico palácio real',    hora: '09:30', dur: '4h', cat: 'Cultura',  nota: '' },
+        { nome: 'Jardins de Versalhes', desc: 'Passeio pelos famosos jardins',         hora: '14:00', dur: '2h', cat: 'Natureza', nota: '' },
+      ],
+      [
+        { nome: 'Montmartre',   desc: 'Explore o bairro boêmio de Paris',       hora: '10:00', dur: '3h', cat: 'Cultura', nota: '' },
+        { nome: 'Sacré-Cœur',  desc: 'Basílica no topo de Montmartre',           hora: '13:00', dur: '1h', cat: 'Cultura', nota: '' },
+        { nome: 'Moulin Rouge', desc: 'Espetáculo no famoso cabaré',              hora: '21:00', dur: '2h', cat: 'Lazer',   nota: '' },
+      ],
+    ]
+  },
+  {
+    destino: 'Tóquio, Japão',
+    inicio: '2026-06-10', fim: '2026-06-20',
+    dias: 10, status: 'planejando',
+    atividades: [
+      [
+        { nome: 'Templo Senso-ji', desc: 'O templo mais antigo de Tóquio em Asakusa', hora: '08:00', dur: '2h', cat: 'Cultura', nota: '' },
+        { nome: 'Akihabara',       desc: 'Bairro da eletrônica e cultura pop',          hora: '13:00', dur: '3h', cat: 'Lazer',   nota: '' },
+      ],
+      [
+        { nome: 'Monte Fuji', desc: 'Vista panorâmica do vulcão mais famoso', hora: '06:00', dur: 'Dia inteiro', cat: 'Natureza', nota: '' },
+      ],
+    ]
+  }
+];
+
+const locaisVisitados = [
+  { nome: 'Torre Eiffel',    cidade: 'Paris, França',             data: '15 Mai 2025', fav: true  },
+  { nome: 'Cristo Redentor', cidade: 'Rio de Janeiro, Brasil',    data: '20 Dez 2024', fav: true  },
+  { nome: 'Coliseu',         cidade: 'Roma, Itália',              data: '10 Jul 2024', fav: false },
+  { nome: 'Sagrada Família', cidade: 'Barcelona, Espanha',        data: '03 Mar 2024', fav: false },
+];
+const listaDesejos = [
+  { nome: 'Machu Picchu', cidade: 'Cusco, Peru',           data: '—', fav: true  },
+  { nome: 'Angkor Wat',   cidade: 'Siem Reap, Camboja',    data: '—', fav: true  },
+  { nome: 'Aurora Boreal',cidade: 'Tromsø, Noruega',       data: '—', fav: false },
+];
+
+/* ── Navigation ── */
+function navigate(page, viagemIdx = null) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+  if (page === 'roteiro' && viagemIdx !== null) {
+    currentViagemIdx = viagemIdx;
+    currentDay = 0;
+    document.getElementById('page-roteiro').classList.add('active');
+    // reset to lista view
+    switchView('lista', true);
+    loadRoteiro();
+  } else {
+    document.getElementById('page-' + page).classList.add('active');
+    const navEl = document.getElementById('nav-' + page);
+    if (navEl) navEl.classList.add('active');
+  }
+  currentPage = page;
+  if (page === 'viagens') renderViagens();
+  if (page === 'perfil')  renderPerfil();
+}
+
+/* ── Viagens ── */
+function renderViagens() {
+  const grid = document.getElementById('viagens-grid');
+  grid.innerHTML = viagens.map((v, i) => `
+    <div class="trip-card" onclick="navigate('roteiro', ${i})">
+      <div class="trip-card-img">
+        <svg viewBox="0 0 24 24" fill="rgba(255,255,255,.7)"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+      </div>
+      <div class="trip-card-body">
+        <div class="trip-card-title">${v.destino}</div>
+        <div class="trip-meta">
+          <div class="trip-meta-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            ${formatDate(v.inicio)} - ${formatDate(v.fim)}
+          </div>
+          <div class="trip-meta-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            ${v.dias} dias
+          </div>
+        </div>
+        <span class="badge badge-${v.status === 'proxima' ? 'prox' : 'plan'}">
+          ${v.status === 'proxima' ? 'Próxima viagem' : 'Planejando'}
+        </span>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ── Roteiro ── */
+function loadRoteiro() {
+  const v = viagens[currentViagemIdx];
+  document.getElementById('rot-title').textContent  = v.destino;
+  document.getElementById('rot-dates').textContent  = `${formatDate(v.inicio)} - ${formatDate(v.fim)}`;
+  document.getElementById('rot-days').textContent   = `${v.dias} dias`;
+  renderDayActivities();
+}
+
+function renderDayActivities() {
+  const v = viagens[currentViagemIdx];
+  const dayAtivs = v.atividades[currentDay] || [];
+  const startDate = new Date(v.inicio + 'T00:00:00');
+  const dayDate = new Date(startDate);
+  dayDate.setDate(startDate.getDate() + currentDay);
+
+  document.getElementById('day-label').textContent = `Dia ${currentDay + 1}`;
+  document.getElementById('day-date').textContent  = dayDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+
+  const container = document.getElementById('list-view-container');
+  if (dayAtivs.length === 0) {
+    container.innerHTML = `
+      <div style="text-align:center;padding:40px;color:#999">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5" style="display:block;margin:0 auto 12px"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <p style="font-size:.9rem">Nenhuma atividade neste dia.<br>Clique em <strong>Adicionar Atividade</strong> para começar.</p>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = dayAtivs.map((a, i) => `
+    <div class="atividade-card">
+      <div class="ativ-num">${i + 1}</div>
+      <div class="ativ-body">
+        <div class="ativ-title">${a.nome}</div>
+        <div class="ativ-desc">${a.desc}</div>
+        <div class="ativ-meta">
+          <span class="ativ-meta-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            ${a.hora}
+          </span>
+          <span class="ativ-meta-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            ${a.dur}
+          </span>
+          <span class="tag tag-${a.cat.toLowerCase()}">${a.cat}</span>
+          ${a.nota ? `<span style="font-size:.78rem;color:var(--accent-teal);font-weight:600">📝 Nota</span>` : ''}
+        </div>
+      </div>
+      <div class="ativ-actions">
+        <button class="ativ-btn note" onclick="openNotaModal(${i})" title="Nota">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        </button>
+        <button class="ativ-btn del" onclick="removerAtividade(${i})" title="Remover">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function changeDay(dir) {
+  const v = viagens[currentViagemIdx];
+  const maxDays = Math.max(v.atividades.length, v.dias);
+  const newDay = currentDay + dir;
+  if (newDay < 0 || newDay >= maxDays) return;
+  currentDay = newDay;
+  renderDayActivities();
+  // se o mapa estiver visível, atualiza
+  if (!document.getElementById('map-view-wrapper').classList.contains('visible')) return;
+  renderMap();
+}
+
+/* ── MAP (Leaflet + OpenStreetMap) ── */
+function switchView(view, forceReset) {
+  const listEl    = document.getElementById('list-view-container');
+  const mapEl     = document.getElementById('map-view-wrapper');
+  const tabLista  = document.getElementById('tab-lista');
+  const tabMapa   = document.getElementById('tab-mapa');
+
+  if (view === 'lista' || forceReset) {
+    listEl.classList.remove('hidden');
+    mapEl.classList.remove('visible');
+    tabLista.classList.add('active');
+    tabMapa.classList.remove('active');
+    if (forceReset) return;
+  } else {
+    listEl.classList.add('hidden');
+    mapEl.classList.add('visible');
+    tabMapa.classList.add('active');
+    tabLista.classList.remove('active');
+    // inicializa ou atualiza o mapa
+    setTimeout(renderMap, 100); // aguarda display:flex
+  }
+}
+
+function renderMap() {
+  const v        = viagens[currentViagemIdx];
+  const dayAtivs = v.atividades[currentDay] || [];
+  const center   = destinoCoords[v.destino] || destinoCoords['default'];
+
+  // inicializa o mapa se ainda não existir
+  if (!leafletMap) {
+    leafletMap = L.map('leaflet-map', { zoomControl: true }).setView(center, 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 19
+    }).addTo(leafletMap);
+  } else {
+    leafletMap.setView(center, 13);
+    // limpa marcadores anteriores
+    mapMarkers.forEach(m => leafletMap.removeLayer(m));
+    mapMarkers = [];
+  }
+
+  const legendList = document.getElementById('map-legend-list');
+  legendList.innerHTML = '';
+  const bounds = [];
+
+  if (dayAtivs.length === 0) {
+    legendList.innerHTML = '<span style="color:#999;font-size:.83rem">Nenhuma atividade neste dia.</span>';
+    leafletMap.setView(center, 12);
+    leafletMap.invalidateSize();
+    return;
+  }
+
+  dayAtivs.forEach((a, i) => {
+    const coords = atividadeCoords[a.nome];
+    if (!coords) return;
+    bounds.push(coords);
+
+    // ícone numerado personalizado
+    const icon = L.divIcon({
+      className: '',
+      html: `<div style="
+        background:#2d6e7e;color:#fff;
+        width:28px;height:28px;border-radius:50%;
+        display:flex;align-items:center;justify-content:center;
+        font-size:12px;font-weight:700;
+        border:2px solid #fff;
+        box-shadow:0 2px 6px rgba(0,0,0,.3);
+        font-family:Segoe UI,sans-serif;
+      ">${i+1}</div>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
+      popupAnchor: [0, -14]
+    });
+
+    const marker = L.marker(coords, { icon }).addTo(leafletMap);
+    marker.bindPopup(`
+      <div style="font-family:Segoe UI,sans-serif;min-width:160px">
+        <div style="font-weight:700;font-size:.93rem;margin-bottom:4px">${a.nome}</div>
+        <div style="font-size:.8rem;color:#555;margin-bottom:4px">${a.desc}</div>
+        <div style="font-size:.78rem;color:#2d6e7e">🕐 ${a.hora} &nbsp;⏱️ ${a.dur}</div>
+      </div>
+    `);
+    mapMarkers.push(marker);
+
+    // legenda
+    legendList.innerHTML += `
+      <div class="map-legend-item">
+        <span class="map-legend-num">${i+1}</span>
+        <span><strong>${a.nome}</strong> — ${a.hora} · ${a.dur}</span>
+      </div>`;
+  });
+
+  if (bounds.length > 0) {
+    leafletMap.fitBounds(bounds, { padding: [40, 40] });
+  }
+  leafletMap.invalidateSize();
+}
+
+function removerAtividade(idx) {
+  viagens[currentViagemIdx].atividades[currentDay].splice(idx, 1);
+  renderDayActivities();
+  showToast('Atividade removida', 'success');
+}
+
+/* ── Perfil ── */
+function renderPerfil() {
+  document.getElementById('stat-paises').textContent = locaisVisitados.length;
+  document.getElementById('stat-cidades').textContent = locaisVisitados.length;
+  document.getElementById('stat-locais').textContent = locaisVisitados.length;
+  const list = perfilTab === 'visitados' ? locaisVisitados : listaDesejos;
+  const grid = document.getElementById('locais-grid');
+  grid.innerHTML = list.map((l, i) => `
+    <div class="local-card">
+      <div class="local-card-img">
+        <svg viewBox="0 0 24 24" fill="rgba(255,255,255,.7)"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+        <button class="fav-btn ${l.fav ? 'active' : ''}" onclick="toggleFav(${i}, event)">
+          <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </button>
+      </div>
+      <div class="local-card-body">
+        <div class="local-card-title">${l.nome}</div>
+        <div class="local-card-loc">${l.cidade}</div>
+        ${l.data !== '—'
+          ? `<div class="local-card-date"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Visitado em ${l.data}</div>`
+          : `<div class="local-card-date" style="color:#e8b96a"><svg viewBox="0 0 24 24" fill="#e8b96a"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg> Lista de desejos</div>`}
+      </div>
+    </div>
+  `).join('');
+}
+
+function switchPerfilTab(tab) {
+  perfilTab = tab;
+  document.getElementById('ptab-visitados').classList.toggle('active', tab === 'visitados');
+  document.getElementById('ptab-desejos').classList.toggle('active', tab === 'desejos');
+  renderPerfil();
+}
+function toggleFav(idx, e) {
+  e.stopPropagation();
+  const list = perfilTab === 'visitados' ? locaisVisitados : listaDesejos;
+  list[idx].fav = !list[idx].fav;
+  renderPerfil();
+}
+
+/* ── Login (autenticação simulada) ── */
+function fazerLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const senha = document.getElementById('login-senha').value;
+  if (!email || !email.includes('@')) { showToast('Informe um e-mail válido', 'error'); return; }
+  if (!senha || senha.length < 4)     { showToast('A senha deve ter ao menos 4 caracteres', 'error'); return; }
+  document.getElementById('login-screen').classList.add('hidden');
+  showToast(`Bem-vindo(a) de volta! ✈️`, 'success');
+}
+function sair() {
+  document.getElementById('login-senha').value = '';
+  document.getElementById('login-screen').classList.remove('hidden');
+  navigate('viagens');
+  showToast('Até logo! 👋');
+}
+function esqueciSenha() {
+  const email = document.getElementById('login-email').value.trim();
+  if (!email || !email.includes('@')) { showToast('Digite seu e-mail no campo acima primeiro', 'error'); return; }
+  showToast(`Link de redefinição enviado para ${email} (simulado) 📧`, 'success');
+}
+function criarConta() {
+  showToast('Cadastro simulado — entre com qualquer e-mail e senha 😉');
+}
+document.getElementById('login-senha').addEventListener('keydown', e => {
+  if (e.key === 'Enter') fazerLogin();
+});
+
+/* ── Modals ── */
+let wizardStep = 1;
+
+function atualizarWizard() {
+  const pct = [33, 67, 100][wizardStep - 1];
+  document.getElementById('wizard-step-label').textContent = `Passo ${wizardStep} de 3`;
+  document.getElementById('wizard-pct').textContent = pct + '%';
+  document.getElementById('wizard-bar').style.width = pct + '%';
+  for (let i = 1; i <= 3; i++) {
+    document.getElementById('wizard-step-' + i).classList.toggle('active', i === wizardStep);
+  }
+  document.getElementById('wizard-btn-back').textContent = wizardStep === 1 ? 'Cancelar' : 'Voltar';
+  document.getElementById('wizard-btn-next').textContent = wizardStep === 3 ? 'Criar Viagem' : 'Próximo';
+}
+
+function wizardAvancar() {
+  if (wizardStep === 1) {
+    const destino = document.getElementById('input-destino').value.trim();
+    const inicio  = document.getElementById('input-inicio').value;
+    const fim     = document.getElementById('input-fim').value;
+    if (!destino)        { showToast('Informe o destino', 'error'); return; }
+    if (!inicio || !fim) { showToast('Informe as datas', 'error'); return; }
+    if (fim < inicio)    { showToast('Data de fim deve ser após o início', 'error'); return; }
+  }
+  if (wizardStep < 3) { wizardStep++; atualizarWizard(); return; }
+  criarViagem();
+}
+
+function wizardVoltar() {
+  if (wizardStep === 1) { closeModal(); return; }
+  wizardStep--;
+  atualizarWizard();
+}
+
+function openModal() {
+  wizardStep = 1;
+  atualizarWizard();
+  document.getElementById('modal-nova-viagem').classList.add('open');
+}
+function closeModal() { document.getElementById('modal-nova-viagem').classList.remove('open'); }
+function toggleChip(el) { el.classList.toggle('selected'); }
+
+function criarViagem() {
+  const destino   = document.getElementById('input-destino').value.trim();
+  const inicio    = document.getElementById('input-inicio').value;
+  const fim       = document.getElementById('input-fim').value;
+  const orcamento = parseFloat(document.getElementById('input-orcamento').value) || null;
+  const hotel     = document.getElementById('input-hotel').value.trim();
+  const prefs     = [...document.querySelectorAll('.pref-chip.selected')].map(c => c.textContent.trim());
+  const dias = Math.round((new Date(fim) - new Date(inicio)) / 86400000) + 1;
+  viagens.push({ destino, inicio, fim, dias, status: 'planejando', orcamento, hospedagem: hotel, preferencias: prefs, atividades: [] });
+  closeModal();
+  renderViagens();
+  showToast(`Viagem para ${destino} criada! ✈️`, 'success');
+  document.getElementById('input-destino').value   = '';
+  document.getElementById('input-inicio').value    = '';
+  document.getElementById('input-fim').value       = '';
+  document.getElementById('input-orcamento').value = '';
+  document.getElementById('input-hotel').value     = '';
+  document.querySelectorAll('.pref-chip').forEach(c => c.classList.remove('selected'));
+}
+
+function openAddAtivModal()  { document.getElementById('modal-add-ativ').classList.add('open'); }
+function closeAddAtivModal() { document.getElementById('modal-add-ativ').classList.remove('open'); }
+
+function adicionarAtividade() {
+  const nome = document.getElementById('ativ-nome').value.trim();
+  const desc = document.getElementById('ativ-desc').value.trim();
+  const hora = document.getElementById('ativ-hora').value;
+  const dur  = document.getElementById('ativ-dur').value;
+  const cat  = document.getElementById('ativ-cat').value;
+  if (!nome) { showToast('Informe o nome da atividade', 'error'); return; }
+  const v = viagens[currentViagemIdx];
+  while (v.atividades.length <= currentDay) v.atividades.push([]);
+  v.atividades[currentDay].push({ nome, desc: desc || 'Atividade adicionada', hora, dur, cat, nota: '' });
+  closeAddAtivModal();
+  renderDayActivities();
+  showToast(`"${nome}" adicionado ao Dia ${currentDay + 1}`, 'success');
+  document.getElementById('ativ-nome').value = '';
+  document.getElementById('ativ-desc').value = '';
+}
+
+function openNotaModal(idx) {
+  currentNotaAtivIdx = idx;
+  const a = viagens[currentViagemIdx].atividades[currentDay][idx];
+  document.getElementById('nota-subtitle').textContent = `Nota para: ${a.nome}`;
+  document.getElementById('nota-texto').value = a.nota || '';
+  document.getElementById('modal-nota').classList.add('open');
+}
+function closeNotaModal() { document.getElementById('modal-nota').classList.remove('open'); }
+function salvarNota() {
+  const texto = document.getElementById('nota-texto').value.trim();
+  viagens[currentViagemIdx].atividades[currentDay][currentNotaAtivIdx].nota = texto;
+  closeNotaModal();
+  renderDayActivities();
+  showToast('Nota salva 📝', 'success');
+}
+
+/* ── Toast ── */
+let toastTimer;
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+/* ── Utils ── */
+function formatDate(str) {
+  return new Date(str + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+/* Close modals on overlay click */
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+});
+
+/* Init */
+renderViagens();
+</script>
+</body>
+</html>
