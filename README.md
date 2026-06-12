@@ -31,7 +31,7 @@ A aplicação permite que os usuários criem roteiros personalizados, organizem 
 
 ## Equipe de Desenvolvimento
 
-- Diogo Helberth de Sousa Silva
+- Diogo Heberth de Sousa Silva
 - Fernando Machado de Faria
 - Matheus Sousa Costa
 - Victor Hugo Américo dos Santos Garajau
